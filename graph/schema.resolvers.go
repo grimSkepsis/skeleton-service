@@ -16,15 +16,31 @@ import (
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
 	r.Logger.Info("createTodo", zap.Any("input", input))
 	newTodo := dbmodel.Todo{Text: input.Text, UserID: input.UserID, Done: false}
-	r.DB.Create(&newTodo)
+	result := r.DB.Create(&newTodo)
+
+	if result.Error != nil {
+		r.Logger.Error("failed to create todo", zap.Error(result.Error))
+		return nil, result.Error
+	}
+
 	return convertDBTodoToModel(&newTodo), nil
 }
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	todo := model.Todo{ID: "1234", Text: "Hello", Done: false}
-	r.Logger.Info("todos", zap.Any("todo", todo))
-	return []*model.Todo{&todo}, nil
+	r.Logger.Info("todos")
+	var dbTodos []dbmodel.Todo
+	result := r.DB.Find(&dbTodos)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	var todos []*model.Todo
+	for _, dbTodo := range dbTodos {
+		todos = append(todos, convertDBTodoToModel(&dbTodo))
+	}
+
+	return todos, nil
 }
 
 // Mutation returns MutationResolver implementation.
