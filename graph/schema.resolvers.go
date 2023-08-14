@@ -14,12 +14,11 @@ import (
 
 // CreateTodo is the resolver for the createTodo field.
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	r.Logger.Info("createTodo", zap.Any("input", input))
+	r.logger.Info("createTodo", zap.Any("input", input))
 	newTodo := dbmodel.Todo{Text: input.Text, UserID: input.UserID, Done: false}
-	result := r.DB.Create(&newTodo)
+	result := r.db.Create(&newTodo)
 
 	if result.Error != nil {
-		r.Logger.Error("failed to create todo", zap.Error(result.Error))
 		return nil, result.Error
 	}
 
@@ -28,9 +27,9 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	r.Logger.Info("todos")
+	r.logger.Info("todos")
 	var dbTodos []dbmodel.Todo
-	result := r.DB.Find(&dbTodos)
+	result := r.db.Find(&dbTodos)
 	if result.Error != nil {
 		return nil, result.Error
 	}

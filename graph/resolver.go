@@ -10,6 +10,10 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	Logger *zap.Logger
-	DB     *gorm.DB
+	logger *zap.Logger
+	db     *gorm.DB
+}
+
+func NewResolver(logger *zap.Logger, db *gorm.DB) *Resolver {
+	return &Resolver{logger: logger, db: db}
 }
