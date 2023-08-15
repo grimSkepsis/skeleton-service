@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"math"
 	dbmodel "skeleton-service/database/model"
 	"skeleton-service/graph/model"
 
@@ -42,6 +43,31 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	return todos, nil
 }
 
+// TodosPaginated is the resolver for the todosPaginated field.
+func (r *queryResolver) TodosPaginated(ctx context.Context, page int, limit int) (*model.TodoConnection, error) {
+	r.logger.Info("todosPaginated", zap.Int("page", page), zap.Int("limit", limit))
+	var dbTodos []dbmodel.Todo
+	result := r.db.Limit(limit).Offset((page - 1) * limit).Find(&dbTodos)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	var todoCount int64
+	countResult := r.db.Model(&dbmodel.Todo{}).Count(&todoCount)
+	if countResult.Error != nil {
+		return nil, countResult.Error
+	}
+	return &model.TodoConnection{
+		Edges: convertDBTodosToModels(dbTodos),
+		PageInfo: &model.PageInfo{
+			Total:           int(todoCount),
+			TotalPages:      int(math.Ceil(float64(todoCount) / float64(limit))),
+			CurrentPage:     int(page),
+			HasNextPage:     todoCount > int64((page-1)*limit),
+			HasPreviousPage: page > 1,
+		},
+	}, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -50,12 +76,3 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-func convertDBTodoToModel(dbTodo *dbmodel.Todo) *model.Todo {
-	return &model.Todo{
-		ID:   dbTodo.ID,
-		Text: dbTodo.Text,
-		Done: dbTodo.Done,
-		User: &model.User{ID: dbTodo.UserID, Name: "Test User"},
-	}
-}
