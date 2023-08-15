@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"math"
 	dbmodel "skeleton-service/database/model"
 	"skeleton-service/graph/model"
@@ -24,6 +25,20 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 	}
 
 	return convertDBTodoToModel(&newTodo), nil
+}
+
+// DeleteTodoByID is the resolver for the deleteTodoById field.
+func (r *mutationResolver) DeleteTodoByID(ctx context.Context, id string) (bool, error) {
+	r.logger.Info("deleteTodoById", zap.String("id", id))
+
+	result := r.db.Delete(&dbmodel.Todo{ID: id})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return false, fmt.Errorf("no todo with id %s", id)
+	}
+	return true, nil
 }
 
 // Todos is the resolver for the todos field.
