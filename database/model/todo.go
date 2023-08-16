@@ -9,3 +9,9 @@ type Todo struct {
 	UserID string
 	Done   bool
 }
+
+type TodoStats struct {
+	Total          int64  `json:"total"`
+	TotalCompleted int64  `json:"total_completed"`
+	AggregateText  string `json:"aggregate_text"`
+}

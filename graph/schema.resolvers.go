@@ -18,12 +18,10 @@ import (
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
 	r.logger.Info("createTodo", zap.Any("input", input))
 	newTodo := dbmodel.Todo{Text: input.Text, UserID: input.UserID, Done: false}
-	result := r.db.Create(&newTodo)
-
-	if result.Error != nil {
-		return nil, result.Error
+	err := r.todoManager.Create(&newTodo)
+	if err != nil {
+		return nil, err
 	}
-
 	return convertDBTodoToModel(&newTodo), nil
 }
 
@@ -31,12 +29,9 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 func (r *mutationResolver) DeleteTodoByID(ctx context.Context, id string) (bool, error) {
 	r.logger.Info("deleteTodoById", zap.String("id", id))
 
-	result := r.db.Delete(&dbmodel.Todo{ID: id})
-	if result.Error != nil {
-		return false, result.Error
-	}
-	if result.RowsAffected == 0 {
-		return false, fmt.Errorf("no todo with id %s", id)
+	err := r.todoManager.Delete(id)
+	if err != nil {
+		return false, err
 	}
 	return true, nil
 }
@@ -45,33 +40,31 @@ func (r *mutationResolver) DeleteTodoByID(ctx context.Context, id string) (bool,
 func (r *mutationResolver) UpdateTodoByID(ctx context.Context, id string, done bool) (*model.Todo, error) {
 	r.logger.Info("updateTodoById", zap.String("id", id), zap.Bool("done", done))
 
-	dbTodo := dbmodel.Todo{ID: id}
-	result := r.db.First(&dbTodo)
-	if result.Error != nil {
-		return nil, result.Error
+	dbTodo, err := r.todoManager.GetByID(id)
+	if err != nil {
+		return nil, err
 	}
 
 	dbTodo.Done = done
-	result = r.db.Save(&dbTodo)
-	if result.Error != nil {
-		return nil, result.Error
+	err = r.todoManager.Update(dbTodo)
+	if err != nil {
+		return nil, err
 	}
 
-	return convertDBTodoToModel(&dbTodo), nil
+	return convertDBTodoToModel(dbTodo), nil
 }
 
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	r.logger.Info("todos")
-	var dbTodos []dbmodel.Todo
-	result := r.db.Find(&dbTodos)
-	if result.Error != nil {
-		return nil, result.Error
+	dbTodos, err := r.todoManager.GetAll()
+	if err != nil {
+		return nil, err
 	}
 
 	var todos []*model.Todo
 	for _, dbTodo := range dbTodos {
-		todos = append(todos, convertDBTodoToModel(&dbTodo))
+		todos = append(todos, convertDBTodoToModel(dbTodo))
 	}
 
 	return todos, nil
@@ -80,16 +73,17 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 // TodosPaginated is the resolver for the todosPaginated field.
 func (r *queryResolver) TodosPaginated(ctx context.Context, page int, limit int) (*model.TodoConnection, error) {
 	r.logger.Info("todosPaginated", zap.Int("page", page), zap.Int("limit", limit))
-	var dbTodos []dbmodel.Todo
-	result := r.db.Limit(limit).Offset((page - 1) * limit).Order("created_at asc").Find(&dbTodos)
-	if result.Error != nil {
-		return nil, result.Error
+
+	dbTodos, err := r.todoManager.GetPage(page, limit)
+	if err != nil {
+		return nil, err
 	}
-	var todoCount int64
-	countResult := r.db.Model(&dbmodel.Todo{}).Count(&todoCount)
-	if countResult.Error != nil {
-		return nil, countResult.Error
+
+	todoCount, err := r.todoManager.GetCount()
+	if err != nil {
+		return nil, err
 	}
+
 	return &model.TodoConnection{
 		Edges: convertDBTodosToModels(dbTodos),
 		PageInfo: &model.PageInfo{
@@ -109,13 +103,16 @@ func (r *queryResolver) CompletionRatio(ctx context.Context) (float64, error) {
 
 // TodoStats is the resolver for the todoStats field.
 func (r *queryResolver) TodoStats(ctx context.Context) (*model.TodoStats, error) {
-	stats := model.TodoStats{}
-	result := r.db.Model(&dbmodel.Todo{}).Select(`count(*) as total, sum(case when done = TRUE then 1 else 0 end) as total_completed, string_agg(text, ', ' order by created_at asc) AS aggregate_text`).Scan(&stats)
-	if result.Error != nil {
-		return nil, result.Error
+	stats, err := r.todoManager.GetStats()
+	if err != nil {
+		return nil, err
 	}
 	r.logger.Info("todoStats", zap.Any("stats", stats))
-	return &stats, nil
+	return &model.TodoStats{
+		Total:          int(stats.Total),
+		TotalCompleted: int(stats.TotalCompleted),
+		AggregateText:  stats.AggregateText,
+	}, nil
 }
 
 // Mutation returns MutationResolver implementation.

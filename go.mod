@@ -4,6 +4,8 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.17.36
+	github.com/jinzhu/gorm v1.9.16
+	github.com/pkg/errors v0.9.1
 	github.com/vektah/gqlparser/v2 v2.5.8
 	go.uber.org/zap v1.25.0
 	gorm.io/driver/postgres v1.5.2

@@ -14,10 +14,10 @@ func convertDBTodoToModel(dbTodo *dbmodel.Todo) *model.Todo {
 	}
 }
 
-func convertDBTodosToModels(dbTodos []dbmodel.Todo) []*model.Todo {
+func convertDBTodosToModels(dbTodos []*dbmodel.Todo) []*model.Todo {
 	var todos []*model.Todo
 	for _, dbTodo := range dbTodos {
-		todos = append(todos, convertDBTodoToModel(&dbTodo))
+		todos = append(todos, convertDBTodoToModel(dbTodo))
 	}
 	return todos
 }

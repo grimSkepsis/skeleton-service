@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	dbmanager "skeleton-service/database/manager"
 	"skeleton-service/graph"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -37,7 +38,7 @@ func main() {
 		logger.Info("connected to db")
 	}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(logger, db)}))
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver(logger, dbmanager.NewTodoManager(db))}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
