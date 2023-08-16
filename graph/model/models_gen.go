@@ -27,6 +27,12 @@ type TodoConnection struct {
 	PageInfo *PageInfo `json:"pageInfo"`
 }
 
+type TodoStats struct {
+	AggregateText  string `json:"aggregateText"`
+	TotalCompleted int    `json:"totalCompleted"`
+	Total          int    `json:"total"`
+}
+
 type User struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`

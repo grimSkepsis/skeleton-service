@@ -102,6 +102,22 @@ func (r *queryResolver) TodosPaginated(ctx context.Context, page int, limit int)
 	}, nil
 }
 
+// CompletionRatio is the resolver for the completionRatio field.
+func (r *queryResolver) CompletionRatio(ctx context.Context) (float64, error) {
+	panic(fmt.Errorf("not implemented: CompletionRatio - completionRatio"))
+}
+
+// TodoStats is the resolver for the todoStats field.
+func (r *queryResolver) TodoStats(ctx context.Context) (*model.TodoStats, error) {
+	stats := model.TodoStats{}
+	result := r.db.Model(&dbmodel.Todo{}).Select(`count(*) as total, sum(case when done = TRUE then 1 else 0 end) as total_completed, string_agg(text, ', ' order by created_at asc) AS aggregate_text`).Scan(&stats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	r.logger.Info("todoStats", zap.Any("stats", stats))
+	return &stats, nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 

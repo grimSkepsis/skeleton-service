@@ -17,6 +17,8 @@ type User {
 type Query {
   todos: [Todo!]!
   todosPaginated(page: Int!, limit: Int!): TodoConnection!
+  completionRatio: Float!
+  todoStats: TodoStats!
 }
 
 input NewTodo {
@@ -28,6 +30,12 @@ type Mutation {
   createTodo(input: NewTodo!): Todo!
   deleteTodoById(id: String!): Boolean!
   updateTodoById(id: String!, done: Boolean!): Todo!
+}
+
+type TodoStats {
+  aggregateText: String!
+  totalCompleted: Int!
+  total: Int!
 }
 
 type TodoConnection {
