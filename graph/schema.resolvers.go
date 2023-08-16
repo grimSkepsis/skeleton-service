@@ -41,6 +41,25 @@ func (r *mutationResolver) DeleteTodoByID(ctx context.Context, id string) (bool,
 	return true, nil
 }
 
+// UpdateTodoByID is the resolver for the updateTodoById field.
+func (r *mutationResolver) UpdateTodoByID(ctx context.Context, id string, done bool) (*model.Todo, error) {
+	r.logger.Info("updateTodoById", zap.String("id", id), zap.Bool("done", done))
+
+	dbTodo := dbmodel.Todo{ID: id}
+	result := r.db.First(&dbTodo)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	dbTodo.Done = done
+	result = r.db.Save(&dbTodo)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return convertDBTodoToModel(&dbTodo), nil
+}
+
 // Todos is the resolver for the todos field.
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	r.logger.Info("todos")
@@ -62,7 +81,7 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 func (r *queryResolver) TodosPaginated(ctx context.Context, page int, limit int) (*model.TodoConnection, error) {
 	r.logger.Info("todosPaginated", zap.Int("page", page), zap.Int("limit", limit))
 	var dbTodos []dbmodel.Todo
-	result := r.db.Limit(limit).Offset((page - 1) * limit).Find(&dbTodos)
+	result := r.db.Limit(limit).Offset((page - 1) * limit).Order("created_at asc").Find(&dbTodos)
 	if result.Error != nil {
 		return nil, result.Error
 	}
